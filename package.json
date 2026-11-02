@@ -1,0 +1,29 @@
+{
+  "name": "ai-battle-judge",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start -H 0.0.0.0",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "eval:live": "tsx scripts/eval-live.ts",
+    "battle:cli": "tsx scripts/battle-cli.ts"
+  },
+  "dependencies": {
+    "next": "16.2.6",
+    "pg": "8.20.0",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.15",
+    "@types/pg": "8.18.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "tsx": "^4.23.15",
+    "typescript": "5.9.3"
+  }
+}
