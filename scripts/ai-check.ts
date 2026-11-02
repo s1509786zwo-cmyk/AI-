@@ -25,7 +25,7 @@ function mask(value: string): string {
 function endpoint(config: Awaited<ReturnType<typeof resolveAiConfig>>): string {
   const base = config.baseUrl.replace(/\/+$/, "");
   if (config.provider === "gemini") {
-    return `${base}/models/${config.model}:generateContent`;
+    return `${base}/models/${config.model.replace(/^models\//, "")}:generateContent`;
   }
   if (config.provider === "anthropic") {
     return base.endsWith("/v1") ? `${base}/messages` : `${base}/v1/messages`;
