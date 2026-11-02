@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AiNotice } from "@/components/AiNotice";
+import { RuntimeNotice } from "@/components/RuntimeNotice";
 import { getStore } from "@/lib/store";
 import { ARBITRATION_PROTOCOL, MAX_ROUNDS } from "@/lib/engine/rules";
 
@@ -13,6 +14,7 @@ export default async function HomePage() {
   return (
     <main className="main">
       <AiNotice />
+      <RuntimeNotice />
 
       <section className="hero">
         <div>

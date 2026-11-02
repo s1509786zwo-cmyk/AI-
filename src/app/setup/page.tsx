@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { AiSettingsForm, type PublicSettings } from "@/components/AiSettingsForm";
+import { RuntimeNotice } from "@/components/RuntimeNotice";
+import { AiDiagnosticButton } from "@/components/AiDiagnosticButton";
 import { envKeyPresent, resolveAiConfig, toPublicConfig } from "@/lib/ai/config";
 import { getStore } from "@/lib/store";
 import { DEFAULT_MODEL } from "@/lib/ai/config";
@@ -44,6 +46,7 @@ export default async function SetupPage() {
             ホーム
           </Link>
         </div>
+        <RuntimeNotice />
         <div className="banner banner-ok">
           <div>
             <div className="banner-title">接続設定はサーバー側で完了しています</div>
@@ -87,6 +90,7 @@ export default async function SetupPage() {
             </div>
           </div>
         </div>
+        <AiDiagnosticButton />
         <p className="hint" style={{ marginTop: 16 }}>
           設定の変更はサーバーの環境変数（.env.local）で行います。この画面からAPIキーを入力する必要はありません。
         </p>
@@ -119,6 +123,7 @@ AI_AUDIT=on`;
         </Link>
       </div>
 
+      <RuntimeNotice />
       <div className="banner">
         <div>
           <div className="banner-title">
@@ -140,7 +145,8 @@ AI_AUDIT=on`;
 
       <div className="setup-grid">
         <div className="stack">
-          <AiSettingsForm initial={initial} />
+          <AiDiagnosticButton />
+      <AiSettingsForm initial={initial} />
 
           <div className="panel">
             <div className="panel-head">

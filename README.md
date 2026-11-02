@@ -156,6 +156,7 @@ npm run dev
 npm test
 npx tsc --noEmit
 npm run build
+npm run ai:check   # 実APIキーでの接続診断（キーは表示しない）
 ```
 
 `tests/` は決定論的なスクリプトAIを使い、**エンジンと検証器**を検証します（モデル品質ではなく、矛盾を防ぐ仕組みのテスト）。

@@ -8,6 +8,7 @@
     "start": "next start -H 0.0.0.0",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
+    "ai:check": "tsx scripts/ai-check.ts",
     "eval:live": "tsx scripts/eval-live.ts",
     "battle:cli": "tsx scripts/battle-cli.ts"
   },

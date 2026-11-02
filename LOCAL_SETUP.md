@@ -70,6 +70,45 @@ GitHubのクラウド上に開発環境が立ち上がり、Node.js・インタ�
 >
 > PostgreSQL経路はコード上サポートしていますが、この開発環境では実接続テスト未実施です。
 
+### Codespacesで「AI APIエラー」になる場合
+
+まず **開いているURL** を確認してください。
+
+- `https://xxxx-3000.app.github.dev/...` → Codespaces。外部通信できます
+- `https://3000-xxxx.e2b.app/...` → Arenaのプレビュー。**外部通信ができません**  
+  → Codespacesの **PORTS** タブ → `3000` → **Open in Browser** で開き直してください
+
+次に、Codespacesのターミナルで診断コマンドを実行します。
+
+```bash
+npm run ai:check
+```
+
+表示例:
+
+```text
+provider   : gemini
+model      : gemini-2.5-flash
+endpoint   : https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+apiKey     : set (53 chars)      ← 「NOT SET」なら .env.local が未設定
+...
+OK: 1234 ms / model=gemini-2.5-flash
+```
+
+`NG` の場合は `code` を見ます。
+
+| code | 意味 | 対処 |
+| --- | --- | --- |
+| `auth` | キーが拒否された | AI Studioで再発行。前後の空白・引用符を除去 |
+| `model` | モデルが使えない | `AI_MODEL=gemini-2.0-flash` に変更 |
+| `network` | 接続できない | 上記のURL確認。VPN/プロキシも確認 |
+| `rate_limit` | 回数制限 | 1分待って再実行 |
+| `not_configured` | キー未設定 | `.env.local` に `GEMINI_API_KEY=...` を設定 |
+
+`apiKey: NOT SET` の場合は、`.env.local` ではなく `.env.example` を編集していないか、
+ファイル名が `.env.local.txt` になっていないかを確認してください。
+設定を変えたら `Ctrl + C` → `npm run dev` で再起動します。
+
 ### 方法の比較
 
 | 方法 | Node.jsのインストール | Gemini通信 | データ保存 | 向き |
