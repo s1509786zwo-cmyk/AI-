@@ -126,13 +126,15 @@ export function describeAiError(error: unknown): string {
   if (error instanceof AiError) {
     switch (error.code) {
       case "not_configured":
-        return "AI APIが未設定です。設定画面で接続情報を登録してください。";
+        return "AI APIが未設定です。サーバー側の接続設定を確認してください。";
       case "auth":
-        return "AI APIの認証に失敗しました。APIキーを確認してください。";
+        return "AI APIの認証に失敗しました。サーバー側のAPIキーを確認してください。";
       case "rate_limit":
         return "AI APIのレート制限に達しました。少し待って再試行してください。";
       case "model":
         return "指定されたAIモデルが利用できません。モデル名を確認してください。";
+      case "network":
+        return "AI APIに接続できませんでした。サーバーの外部通信が許可されているか確認してください。";
       case "timeout":
         return "AI APIの応答がタイムアウトしました。モデルまたはネットワークを確認してください。";
       case "invalid_json":
