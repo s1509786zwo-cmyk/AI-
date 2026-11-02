@@ -1,0 +1,19 @@
+{
+  "name": "ARBITER — AI Battle Adjudication",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:22",
+  "postCreateCommand": "bash -lc 'npm install; test -f .env.local || cp .env.example .env.local'",
+  "forwardPorts": [3000],
+  "portsAttributes": {
+    "3000": {
+      "label": "ARBITER",
+      "onAutoForward": "openPreview"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}
