@@ -24,6 +24,9 @@ function mask(value: string): string {
 
 function endpoint(config: Awaited<ReturnType<typeof resolveAiConfig>>): string {
   const base = config.baseUrl.replace(/\/+$/, "");
+  if (config.provider === "gemini") {
+    return `${base}/models/${config.model}:generateContent`;
+  }
   if (config.provider === "anthropic") {
     return base.endsWith("/v1") ? `${base}/messages` : `${base}/v1/messages`;
   }
@@ -61,7 +64,7 @@ async function main() {
       label: "接続診断",
       tier: "fast",
       temperature: 0,
-      maxTokens: 300,
+      maxTokens: 1024,
       maxRepairs: 1,
     });
     console.log(`\nOK: ${Date.now() - started} ms / model=${result.model} / note=${result.data.note}`);
@@ -79,7 +82,10 @@ async function main() {
           console.error("  キーの前後に空白・引用符が入っていないかも確認してください。");
           break;
         case "model":
-          console.error("\n→ モデル名が利用できません。AI_MODEL を gemini-2.0-flash などに変えて再実行してください。");
+          console.error("\n→ モデルまたはURLがこのキーでは使えません。");
+          console.error("  1) AI_BASE_URL を設定している場合は削除する（GeminiはネイティブURLが既定）");
+          console.error("  2) npm run ai:models で利用可能なモデルを確認する");
+          console.error("  3) 表示されたモデル名を AI_MODEL に設定して再実行する");
           break;
         case "network":
           console.error("\n→ この環境からAI APIへ接続できません。");

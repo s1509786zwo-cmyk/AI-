@@ -6,7 +6,7 @@
  *   npm run eval:live -- --turns=8     # ラウンド上限
  *   npm run eval:live -- --scenario=2  # 個別シナリオ
  *
- * 事前に AI_API_KEY などを設定するか、画面のAI設定を保存しておくこと。
+ * 事前に .env.local へ GEMINI_API_KEY などを設定しておくこと。
  * 結果は .data/eval-report.json に保存される。
  */
 import { mkdir, writeFile } from "node:fs/promises";

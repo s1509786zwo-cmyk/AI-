@@ -220,6 +220,8 @@ async function responseToError(response: Response, secret = ""): Promise<AiError
   });
 }
 
+const GEMINI_FALLBACK_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
+
 export interface HttpAiClientOptions {
   config: AiConfig;
   /** テストやCLIで fetch を差し替える */
@@ -337,6 +339,9 @@ export class HttpAiClient implements AiClient {
     messages: ChatMessage[],
     params: { model: string; temperature: number; maxTokens: number },
   ): Promise<{ text: string; usage?: AiUsage }> {
+    if (this.config.provider === "gemini") {
+      return this.callGemini(messages, params);
+    }
     if (this.config.provider === "anthropic") {
       return this.callAnthropic(messages, params);
     }
@@ -427,6 +432,118 @@ export class HttpAiClient implements AiClient {
         completionTokens: data.usage?.completion_tokens,
       },
     };
+  }
+
+  private async callGemini(
+    messages: ChatMessage[],
+    params: { model: string; temperature: number; maxTokens: number },
+  ): Promise<{ text: string; usage?: AiUsage }> {
+    const base = this.config.baseUrl.replace(/\/+$/, "");
+    const requested = params.model.replace(/^models\//, "");
+    const models = [requested, ...GEMINI_FALLBACK_MODELS].filter(
+      (model, index, all) => model && all.indexOf(model) === index,
+    );
+    const system = messages
+      .filter((message) => message.role === "system")
+      .map((message) => message.content)
+      .join("\n\n");
+    const contents = messages
+      .filter((message) => message.role !== "system")
+      .map((message) => ({
+        role: message.role === "assistant" ? "model" : "user",
+        parts: [{ text: message.content }],
+      }));
+
+    let last: Response | null = null;
+    for (let index = 0; index < models.length; index += 1) {
+      const model = models[index];
+      const url = `${base}/models/${encodeURIComponent(model)}:generateContent`;
+      const generationConfig: Record<string, unknown> = {
+        temperature: params.temperature,
+        maxOutputTokens: params.maxTokens,
+        responseMimeType: "application/json",
+      };
+      // Gemini 2.5 Flash は思考トークンで JSON の出力枠を食いやすいため、思考を切る。
+      if (/^gemini-2\.5-flash/i.test(model)) {
+        generationConfig.thinkingConfig = { thinkingBudget: 0 };
+      }
+      const body: Record<string, unknown> = {
+        contents,
+        generationConfig,
+        ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
+      };
+      const headers = {
+        "content-type": "application/json",
+        "x-goog-api-key": this.config.apiKey,
+      };
+      let response = await fetchWithRetry(
+        this.fetcher,
+        url,
+        { method: "POST", headers, body: JSON.stringify(body) },
+        this.config.timeoutMs,
+        2,
+        this.config.apiKey,
+      );
+
+      // モデル/APIバージョンによる生成設定の差異を吸収する
+      for (let attempt = 0; attempt < 2 && response.status === 400; attempt += 1) {
+        const text = await response.clone().text();
+        let changed = false;
+        if (/thinking/i.test(text) && generationConfig.thinkingConfig) {
+          delete generationConfig.thinkingConfig;
+          changed = true;
+        } else if (/responseMimeType|response_mime_type/i.test(text) && "responseMimeType" in generationConfig) {
+          delete generationConfig.responseMimeType;
+          changed = true;
+        } else if (/temperature/i.test(text) && "temperature" in generationConfig) {
+          delete generationConfig.temperature;
+          changed = true;
+        }
+        if (!changed) break;
+        response = await fetchWithRetry(
+          this.fetcher,
+          url,
+          { method: "POST", headers, body: JSON.stringify(body) },
+          this.config.timeoutMs,
+          2,
+          this.config.apiKey,
+        );
+      }
+
+      if (response.status === 404) {
+        last = response;
+        if (index < models.length - 1) {
+          console.warn(`[ai] Geminiモデル「${model}」が見つからないため「${models[index + 1]}」を試します。`);
+          continue;
+        }
+        throw await responseToError(response, this.config.apiKey);
+      }
+      if (!response.ok) throw await responseToError(response, this.config.apiKey);
+
+      const data = (await response.json()) as {
+        candidates?: {
+          content?: { parts?: { text?: string }[] };
+          finishReason?: string;
+        }[];
+        promptFeedback?: { blockReason?: string };
+        usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
+      };
+      const parts = data.candidates?.[0]?.content?.parts ?? [];
+      const text = parts.map((part) => part?.text ?? "").join("");
+      if (!text.trim()) {
+        const reason = data.promptFeedback?.blockReason ?? data.candidates?.[0]?.finishReason ?? "unknown";
+        throw new AiError("invalid_json", `Geminiがテキストを返しませんでした（${reason}）。`);
+      }
+      return {
+        text,
+        usage: {
+          promptTokens: data.usageMetadata?.promptTokenCount,
+          completionTokens: data.usageMetadata?.candidatesTokenCount,
+        },
+      };
+    }
+    if (last) throw await responseToError(last, this.config.apiKey);
+    throw new AiError("model", "Geminiの呼び出し先が設定されていません。");
   }
 
   private async callAnthropic(

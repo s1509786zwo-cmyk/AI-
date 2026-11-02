@@ -34,7 +34,7 @@ npm run dev
 | `AI_PROVIDER` | `gemini`（既定の例） / `openai` / `anthropic` |
 | `GEMINI_API_KEY` | Gemini APIキー（`GOOGLE_API_KEY` も可） |
 | `AI_API_KEY` | OpenAI互換APIのキー（Anthropicは `ANTHROPIC_API_KEY` も可） |
-| `AI_BASE_URL` | 互換APIのベースURL。Geminiは `https://generativelanguage.googleapis.com/v1beta/openai` |
+| `AI_BASE_URL` | 通常は未設定。GeminiはネイティブURL `https://generativelanguage.googleapis.com/v1beta` を使用 |
 | `AI_MODEL` | 描写・行動選択・裁定に使うモデル |
 | `AI_JUDGE_MODEL` | 裁定・解析用モデル（任意） |
 | `AI_FAST_MODEL` | 行動選択・描写用の軽量モデル（任意） |
@@ -127,7 +127,7 @@ npm run dev
 
 ### 保存
 
-- 既定: `.data/store.json`（原子的書き込み）と `.data/secret`
+- 既定: `.data/store.json`（原子的書き込み）
 - `DATABASE_URL` 設定時: PostgreSQL（`ab_characters` / `ab_battles`）
 - キャラクター本文を変更すると `analysisHash` が変わり、古い解析は使われません
 
@@ -136,8 +136,7 @@ npm run dev
 | メソッド | パス | 内容 |
 | --- | --- | --- |
 | GET | `/api/ai/status` | 設定状況（キーは返さない） |
-| PUT / DELETE | `/api/ai/settings` | 開発用の設定保存・削除（画面では使用しない） |
-| POST | `/api/ai/test` | 接続テスト（実際にモデルを呼ぶ・開発用） |
+| POST | `/api/ai/test` | 接続診断（実際にモデルを呼ぶ・開発用） |
 | GET/POST | `/api/characters` | 一覧・作成 |
 | GET/PATCH/DELETE | `/api/characters/[id]` | 取得・更新・削除 |
 | POST | `/api/characters/[id]/duplicate` | 複製 |
@@ -157,6 +156,7 @@ npm test
 npx tsc --noEmit
 npm run build
 npm run ai:check   # 実APIキーでの接続診断（キーは表示しない）
+npm run ai:models  # Geminiで利用可能なモデル一覧（キーは表示しない）
 ```
 
 `tests/` は決定論的なスクリプトAIを使い、**エンジンと検証器**を検証します（モデル品質ではなく、矛盾を防ぐ仕組みのテスト）。

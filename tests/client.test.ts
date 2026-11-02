@@ -134,3 +134,104 @@ test("互換APIがmax_tokensを拒否した場合はmax_completion_tokensで再�
   assert.ok(!bodies[1].includes('"max_tokens"'));
   assert.ok(bodies[1].includes("max_completion_tokens"));
 });
+
+const geminiConfig: AiConfig = {
+  ...config,
+  provider: "gemini",
+  apiKey: "AQ.test-key-123",
+  baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+  model: "gemini-2.5-flash",
+  fastModel: "gemini-2.5-flash",
+  judgeModel: "gemini-2.5-flash",
+};
+
+function geminiResponse(content: string): Response {
+  return new Response(
+    JSON.stringify({
+      candidates: [{ content: { role: "model", parts: [{ text: content }] }, finishReason: "STOP" }],
+      usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5 },
+    }),
+    { status: 200, headers: { "content-type": "application/json" } },
+  );
+}
+
+test("GeminiはネイティブgenerateContentをx-goog-api-keyで呼ぶ", async () => {
+  let seenUrl = "";
+  let seenInit: RequestInit | null = null;
+  const fetcher = (async (url: string, init: RequestInit) => {
+    seenUrl = String(url);
+    seenInit = init;
+    return geminiResponse('{"ok":true,"model":"gemini-2.5-flash","note":"native"}');
+  }) as unknown as typeof fetch;
+  const client = new HttpAiClient({ config: geminiConfig, fetcher });
+  const result = await client.json({
+    system: "接続診断",
+    user: "ping",
+    schema: probeSchema,
+    label: "probe",
+    tier: "fast",
+  });
+
+  assert.equal(result.data.ok, true);
+  assert.equal(seenUrl, "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent");
+  const init = seenInit as RequestInit | null;
+  const headers = init?.headers as Record<string, string>;
+  assert.equal(headers["x-goog-api-key"], "AQ.test-key-123");
+  assert.equal(headers.authorization, undefined);
+  const body = JSON.parse(String(init?.body));
+  assert.equal(body.systemInstruction.parts[0].text, "接続診断");
+  assert.equal(body.contents[0].role, "user");
+  assert.equal(body.contents[0].parts[0].text, "ping");
+  assert.equal(body.generationConfig.responseMimeType, "application/json");
+  assert.deepEqual(body.generationConfig.thinkingConfig, { thinkingBudget: 0 });
+  assert.equal(body.model, undefined);
+});
+
+test("Geminiでモデルが見つからない場合は既知のモデルへフォールバックする", async () => {
+  const urls: string[] = [];
+  const fetcher = (async (url: string) => {
+    urls.push(String(url));
+    if (urls.length === 1) {
+      return new Response(
+        JSON.stringify({ error: { code: 404, message: "models/gemini-9-flash is not found" } }),
+        { status: 404, headers: { "content-type": "application/json" } },
+      );
+    }
+    return geminiResponse('{"ok":true,"model":"gemini-2.5-flash","note":"fallback"}');
+  }) as unknown as typeof fetch;
+  const client = new HttpAiClient({
+    config: { ...geminiConfig, model: "gemini-9-flash", fastModel: "gemini-9-flash" },
+    fetcher,
+  });
+  const result = await client.json({
+    system: "JSON",
+    user: "x",
+    schema: probeSchema,
+    label: "probe",
+    tier: "fast",
+  });
+  assert.equal(result.data.ok, true);
+  assert.equal(urls.length, 2);
+  assert.match(urls[0], /gemini-9-flash:generateContent$/);
+  assert.match(urls[1], /gemini-2\.5-flash:generateContent$/);
+});
+
+test("Geminiが本文を返さない場合はinvalid_jsonとして報告する", async () => {
+  const fetcher = (async () =>
+    new Response(
+      JSON.stringify({ candidates: [{ finishReason: "MAX_TOKENS" }] }),
+      { status: 200, headers: { "content-type": "application/json" } },
+    )) as unknown as typeof fetch;
+  const client = new HttpAiClient({ config: geminiConfig, fetcher });
+  await assert.rejects(
+    () =>
+      client.json({
+        system: "JSON",
+        user: "x",
+        schema: probeSchema,
+        label: "probe",
+        tier: "fast",
+      }),
+    (error: unknown) => error instanceof AiError && error.code === "invalid_json",
+  );
+});

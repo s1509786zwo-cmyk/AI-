@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "ai:check": "tsx scripts/ai-check.ts",
+    "ai:models": "tsx scripts/ai-models.ts",
     "eval:live": "tsx scripts/eval-live.ts",
     "battle:cli": "tsx scripts/battle-cli.ts"
   },

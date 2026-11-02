@@ -43,7 +43,7 @@ GitHubのクラウド上に開発環境が立ち上がり、Node.js・インタ�
    ```
 6. 「Port 3000 is available」と出たら **Open in Browser** をクリック  
    出ない場合は **PORTS** タブ → `3000` → **Open in Browser**
-7. 開いたURLの `/setup` が「AI審判は構成済みです」になっていればOK
+7. 開いたURLの `/setup` が「接続設定はサーバー側で完了しています」になっていればOK
 
 - 使わないときは Codespaces を **Stop** すれば課金/時間消費を止められます。
 - キャラクターと履歴は Codespace 内の `.data/` に残ります（Codespaceを削除すると消えます）。
@@ -89,8 +89,8 @@ npm run ai:check
 ```text
 provider   : gemini
 model      : gemini-2.5-flash
-endpoint   : https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
-apiKey     : set (53 chars)      ← 「NOT SET」なら .env.local が未設定
+endpoint   : https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
+apiKey     : set                ← 「NOT SET」なら .env.local が未設定
 ...
 OK: 1234 ms / model=gemini-2.5-flash
 ```
@@ -100,7 +100,7 @@ OK: 1234 ms / model=gemini-2.5-flash
 | code | 意味 | 対処 |
 | --- | --- | --- |
 | `auth` | キーが拒否された | AI Studioで再発行。前後の空白・引用符を除去 |
-| `model` | モデルが使えない | `AI_MODEL=gemini-2.0-flash` に変更 |
+| `model` | モデルまたはURLが使えない | `AI_BASE_URL` を削除し、`npm run ai:models` で表示されたモデルを `AI_MODEL` に設定 |
 | `network` | 接続できない | 上記のURL確認。VPN/プロキシも確認 |
 | `rate_limit` | 回数制限 | 1分待って再実行 |
 | `not_configured` | キー未設定 | `.env.local` に `GEMINI_API_KEY=...` を設定 |
@@ -108,6 +108,26 @@ OK: 1234 ms / model=gemini-2.5-flash
 `apiKey: NOT SET` の場合は、`.env.local` ではなく `.env.example` を編集していないか、
 ファイル名が `.env.local.txt` になっていないかを確認してください。
 設定を変えたら `Ctrl + C` → `npm run dev` で再起動します。
+
+### 「モデルまたはエンドポイントが見つかりません。」と出る場合
+
+このアプリはGeminiの**ネイティブAPI**（`/v1beta/models/...:generateContent`）を使います。
+AI Studioの新しいキー（`AQ.` で始まるもの）はこの経路でのみ動作します。
+
+1. `.env.local` に `AI_BASE_URL` がある場合は**行ごと削除**する  
+   （`.../v1beta/openai` を指定すると、`AQ.` キーでは通りません）
+2. 利用可能なモデルを確認する:
+
+   ```bash
+   npm run ai:models
+   ```
+
+3. 一覧に表示された名前（例: `gemini-2.5-flash`、`gemini-2.0-flash`）を `AI_MODEL` に設定する
+4. `npm run ai:check` を再実行する
+
+`AI_MODEL` が一覧に無い場合は、そのキーでは利用できません。一覧から選び直してください。
+このアプリは、モデルが見つからない場合に `gemini-2.5-flash` → `gemini-2.0-flash` →
+`gemini-2.5-flash-lite` の順で自動的に再試行します。
 
 ### 方法の比較
 
@@ -194,8 +214,8 @@ npm run dev
 ### 最初に確認すること
 
 1. `/setup` を開く
-   - 「AI審判は構成済みです」
-   - `Google Gemini` / `gemini-2.5-flash`
+   - 「接続設定はサーバー側で完了しています」
+   - `Google Gemini（ネイティブAPI）` / `gemini-2.5-flash`
    - と表示されれば接続設定はOK
 2. 「キャラクター」→「新規作成」
    - 名前と能力を入れて保存（テンプレートボタンでも可）
@@ -211,7 +231,7 @@ npm run dev
 | 症状 | 対処 |
 | --- | --- |
 | `AI APIの認証に失敗しました` | キーが無効・期限切れ。AI Studioで再発行して `.env.local` を更新 |
-| `指定されたAIモデルが利用できません` | `AI_MODEL` を `gemini-2.0-flash` など利用可能なモデルに変更 |
+| `モデルまたはエンドポイントが見つかりません` | 上の「モデルまたはエンドポイントが見つかりません。と出る場合」を確認。`npm run ai:models` で利用可能なモデルを確認 |
 | `AI APIに接続できませんでした` / `fetch failed` | PCのネットワーク・VPN・プロキシを確認。GoogleへのHTTPS通信が必要 |
 | `ポート3000は使用中` | `npx next dev -p 3001` で起動し、`http://localhost:3001` を開く |
 | 設定を変えたのに反映されない | ターミナルで `Ctrl + C` → `npm run dev` で再起動 |
