@@ -57,7 +57,7 @@ GitHubのクラウド上に開発環境が立ち上がり、Node.js・インタ�
    ```dotenv
    AI_PROVIDER=gemini
    GEMINI_API_KEY=...
-   AI_MODEL=gemini-2.5-flash
+   AI_MODEL=gemini-flash-latest
    AI_AUDIT=on
    AI_TIMEOUT_MS=180000
    ```
@@ -89,10 +89,10 @@ npm run ai:check
 ```text
 provider   : gemini
 model      : gemini-2.5-flash
-endpoint   : https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent
+endpoint   : https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent
 apiKey     : set                ← 「NOT SET」なら .env.local が未設定
 ...
-OK: 1234 ms / model=gemini-2.5-flash
+OK: 1234 ms / model=gemini-flash-latest
 ```
 
 `NG` の場合は `code` を見ます。
@@ -122,12 +122,12 @@ AI Studioの新しいキー（`AQ.` で始まるもの）はこの経路での�
    npm run ai:models
    ```
 
-3. 一覧に表示された名前（例: `gemini-2.5-flash`、`gemini-2.0-flash`）を `AI_MODEL` に設定する
+3. 一覧に表示された名前（例: `gemini-flash-latest`、`gemini-2.5-flash`）を `AI_MODEL` に設定する
 4. `npm run ai:check` を再実行する
 
 `AI_MODEL` が一覧に無い場合は、そのキーでは利用できません。一覧から選び直してください。
-このアプリは、モデルが見つからない場合に `gemini-2.5-flash` → `gemini-2.0-flash` →
-`gemini-2.5-flash-lite` の順で自動的に再試行します。
+このアプリは、モデルが見つからない場合に `gemini-flash-latest` → `gemini-2.5-flash` →
+`gemini-2.0-flash` → `gemini-2.5-flash-lite` の順で自動的に再試行します。
 
 ### 方法の比較
 
@@ -191,7 +191,7 @@ nano .env.local
 ```dotenv
 AI_PROVIDER=gemini
 GEMINI_API_KEY=ここにGeminiのAPIキー
-AI_MODEL=gemini-2.5-flash
+AI_MODEL=gemini-flash-latest
 AI_AUDIT=on
 AI_TIMEOUT_MS=180000
 ```
@@ -215,7 +215,7 @@ npm run dev
 
 1. `/setup` を開く
    - 「接続設定はサーバー側で完了しています」
-   - `Google Gemini（ネイティブAPI）` / `gemini-2.5-flash`
+   - `Google Gemini（ネイティブAPI）` / `gemini-flash-latest`
    - と表示されれば接続設定はOK
 2. 「キャラクター」→「新規作成」
    - 名前と能力を入れて保存（テンプレートボタンでも可）
@@ -249,7 +249,7 @@ Vercel / Render / Railway などのNode.jsホスティングにGitHubリポジ�
 ```dotenv
 AI_PROVIDER=gemini
 GEMINI_API_KEY=...
-AI_MODEL=gemini-2.5-flash
+AI_MODEL=gemini-flash-latest
 AI_AUDIT=on
 ```
 

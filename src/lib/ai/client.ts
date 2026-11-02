@@ -220,7 +220,13 @@ async function responseToError(response: Response, secret = ""): Promise<AiError
   });
 }
 
-const GEMINI_FALLBACK_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-flash-lite"];
+const GEMINI_FALLBACK_MODELS = [
+  "gemini-flash-latest",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
+  "gemini-2.5-flash-lite",
+];
+const GEMINI_THINKING_UNSUPPORTED = new Set<string>();
 
 export interface HttpAiClientOptions {
   config: AiConfig;
@@ -463,8 +469,12 @@ export class HttpAiClient implements AiClient {
         maxOutputTokens: params.maxTokens,
         responseMimeType: "application/json",
       };
-      // Gemini 2.5 Flash は思考トークンで JSON の出力枠を食いやすいため、思考を切る。
-      if (/^gemini-2\.5-flash/i.test(model)) {
+      // Flash系は思考トークンで JSON の出力枠を食いやすいため、思考を切る。
+      // モデルが thinkingConfig を拒否した場合は 400 のリトライで外し、以後は送らない。
+      if (
+        (/^gemini-2\.5-flash/i.test(model) || /^gemini-flash-latest$/i.test(model)) &&
+        !GEMINI_THINKING_UNSUPPORTED.has(model)
+      ) {
         generationConfig.thinkingConfig = { thinkingBudget: 0 };
       }
       const body: Record<string, unknown> = {
@@ -491,6 +501,7 @@ export class HttpAiClient implements AiClient {
         let changed = false;
         if (/thinking/i.test(text) && generationConfig.thinkingConfig) {
           delete generationConfig.thinkingConfig;
+          GEMINI_THINKING_UNSUPPORTED.add(model);
           changed = true;
         } else if (/responseMimeType|response_mime_type/i.test(text) && "responseMimeType" in generationConfig) {
           delete generationConfig.responseMimeType;
@@ -522,14 +533,18 @@ export class HttpAiClient implements AiClient {
 
       const data = (await response.json()) as {
         candidates?: {
-          content?: { parts?: { text?: string }[] };
+          content?: { parts?: { text?: string; thought?: boolean }[] };
           finishReason?: string;
         }[];
         promptFeedback?: { blockReason?: string };
         usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number };
       };
       const parts = data.candidates?.[0]?.content?.parts ?? [];
-      const text = parts.map((part) => part?.text ?? "").join("");
+      // 思考パート（thought: true）は本文ではないので除外する
+      const text = parts
+        .filter((part) => !part?.thought)
+        .map((part) => part?.text ?? "")
+        .join("");
       if (!text.trim()) {
         const reason = data.promptFeedback?.blockReason ?? data.candidates?.[0]?.finishReason ?? "unknown";
         throw new AiError("invalid_json", `Geminiがテキストを返しませんでした（${reason}）。`);

@@ -145,10 +145,11 @@ const geminiConfig: AiConfig = {
   judgeModel: "gemini-2.5-flash",
 };
 
-function geminiResponse(content: string): Response {
+function geminiResponse(content: string, thought?: string): Response {
+  const parts = [...(thought ? [{ text: thought, thought: true }] : []), { text: content }];
   return new Response(
     JSON.stringify({
-      candidates: [{ content: { role: "model", parts: [{ text: content }] }, finishReason: "STOP" }],
+      candidates: [{ content: { role: "model", parts }, finishReason: "STOP" }],
       usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 5 },
     }),
     { status: 200, headers: { "content-type": "application/json" } },
@@ -161,7 +162,7 @@ test("GeminiはネイティブgenerateContentをx-goog-api-keyで呼ぶ", async 
   const fetcher = (async (url: string, init: RequestInit) => {
     seenUrl = String(url);
     seenInit = init;
-    return geminiResponse('{"ok":true,"model":"gemini-2.5-flash","note":"native"}');
+    return geminiResponse('{"ok":true,"model":"gemini-2.5-flash","note":"native"}', "内部の思考は本文ではない");
   }) as unknown as typeof fetch;
   const client = new HttpAiClient({ config: geminiConfig, fetcher });
   const result = await client.json({
@@ -173,6 +174,7 @@ test("GeminiはネイティブgenerateContentをx-goog-api-keyで呼ぶ", async 
   });
 
   assert.equal(result.data.ok, true);
+  assert.equal(result.raw, '{"ok":true,"model":"gemini-2.5-flash","note":"native"}');
   assert.equal(seenUrl, "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent");
   const init = seenInit as RequestInit | null;
   const headers = init?.headers as Record<string, string>;
@@ -213,7 +215,7 @@ test("Geminiでモデルが見つからない場合は既知のモデルへフ�
   assert.equal(result.data.ok, true);
   assert.equal(urls.length, 2);
   assert.match(urls[0], /gemini-9-flash:generateContent$/);
-  assert.match(urls[1], /gemini-2\.5-flash:generateContent$/);
+  assert.match(urls[1], /gemini-flash-latest:generateContent$/);
 });
 
 test("Geminiが本文を返さない場合はinvalid_jsonとして報告する", async () => {

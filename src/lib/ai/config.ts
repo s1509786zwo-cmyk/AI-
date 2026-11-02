@@ -35,7 +35,7 @@ export interface PublicAiConfig {
 }
 
 const DEFAULT_MODEL = "gpt-4.1";
-const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
 const DEFAULT_BASE = "https://api.openai.com/v1";
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
 

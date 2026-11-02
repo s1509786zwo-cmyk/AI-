@@ -113,7 +113,7 @@ export default async function SetupPage() {
         <pre className="code mt-sm">{`# .env.local
 AI_PROVIDER=gemini
 GEMINI_API_KEY=...
-AI_MODEL=gemini-2.5-flash
+AI_MODEL=gemini-flash-latest
 AI_AUDIT=on`}</pre>
         <p className="hint">
           設定を変えたら <span className="mono">npm run ai:check</span> で実際の接続を確認してください。
